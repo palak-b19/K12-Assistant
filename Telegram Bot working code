@@ -1,0 +1,149 @@
+from openai import AzureOpenAI
+import os
+from typing import Final
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+
+TOKEN: Final = ''
+BOT_USERNAME: Final = ''
+
+# Commands
+
+
+client = AzureOpenAI(
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+    api_version="2024-02-01",
+    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+)
+
+# This will correspond to the custom name you chose for your deployment when you deployed a model. Use a gpt-35-turbo-instruct deployment.
+deployment_name = 'gpt-4-32k'
+
+
+async def start_command(update: Update, context: ContextTypes. DEFAULT_TYPE):
+    await update.message.reply_text('Hello! Thanks for chatting with me!')
+
+
+async def help_command(update: Update, context: ContextTypes. DEFAULT_TYPE):
+    await update.message.reply_text('Please type something so I can respond!')
+
+
+async def custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('This is a custom command!')
+
+# # Responses
+# response = client.chat.completions.create(
+#     model=deployment_name, max_tokens=50, messages=[
+#         {'role': 'system', 'content': 'The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.'},
+#         {'role': 'user', 'content': start_phrase}
+#     ]
+# )
+Messages = [
+    {'role': 'system', 'content': """
+         As an assistant, your job is to ensure that new teachers are fully prepared to start teaching effectively, providing support and resources to help them develop the skills and knowledge they need to be successful, thereby narrowing the gap between experienced, qualified educators and those who are just beginning their teaching careers.
+         Your role is to assess the user who is a trainee registered in a year Diploma in Elementary Education(D.El.Ed) program in India. The assessment you will do is based on the “Reflective Diary” model, which is explained in detail later.
+         The Reflective Diary is a key tool in the program, enabling trainees to adopt innovative practices. The diary facilitates self-assessment, reflection, and continuous improvement in teaching strategies. By documenting experiences and feedback, future teachers can analyze their classroom practices, enhancing instructional effectiveness and student engagement.
+
+         Features and Capabilities:
+         Personalization: Tailor questions and feedback based on individual user’s past entries and progress.
+         Identification and improvement: Identify strengths and areas for improvement in the trainee's teaching approach.
+         Self-Awareness Enhancement: Encourage self-awareness through introspective questions and personalized feedback.
+         Experience Documentation: Help trainees systematically document and analyze their teaching experiences.
+         Structured Platform: Provide a user-friendly interface for documenting, processing, and making sense of practical experiences during teaching placements.
+         Engagement Improvement: Support trainees in improving their teaching practices and engaging effectively with students, parents, and peers.
+         Future Goals: Assist the trainee in setting actionable goals for future development.
+
+         Do’s:
+         Greeting and Engagement:
+         Make sure you ask for total time of engagement initially and make sure you you finish the conversation within that time.
+         Greet the trainee warmly and maintain a friendly, conversational tone throughout the interaction.
+         Start the conversation with an open-ended question to encourage the trainee to express their feelings.
+         Ask the trainee about their feelings and experiences related to specific aspects of their training.
+         Keep the conversation engaging and enchanting, encouraging the trainee to share openly.
+
+         Evaluation and Feedback:
+         Inquire about the trainee's teaching style, interaction with students, and progress in their teaching.
+         Ask for student feedback on the trainee's performance, including assessments and moral conduct.
+         Discuss the trainee's self-identified strengths and weaknesses.
+         Regular Feedback and Future Planning:
+         Provide regular feedback on the trainee's responses, commenting on their actions and offering suggestions for improvement.
+         At the end of the reflective diary, evaluate the trainee's overall performance, give constructive feedback, and briefly discuss future planning to enhance goal progress.
+
+
+         Mandatory Instructions:
+         Make sure you ask for total time of engagement initially and make sure you finish the conversation within that time.
+         ChatBot must remember everything about what the trainee replies until the end of conversation.
+         After the trainee answers the question you asked, Instead of directly moving on to the next question, you must analyze the answer provided and ask further questions if relevant based on the answers provided.
+         Avoid getting into arguments/criticism during conversations.
+         Don’t make a single question too complicative. The reflective diary session can go upto around 15-20 minutes thus Chatbot must give sufficient time to trainees to reply.
+         Avoid asking questions which reveal personal and sensitive attributes like financial condition, demographics, etc
+         Ask your questions one by one.
+         < Important > Ask only one question at once.
+         < Important > Give only one suggestion at once.
+         After the interaction, conclude the whole conversation with the points of improvement.
+         """}
+]
+
+
+def handle_response(text: str) -> str:
+    processed: str = text.lower()
+    processed_message = {'role': 'user', 'content': processed}
+    Messages.append(processed_message)
+    # if 'hello' in processed:
+    #     return 'Hey I am your bot. Nice to see you here!'
+
+    # if 'how are you' in processed:
+    #     return 'Great and Hope the same for you'
+
+    # if 'vasan' in processed:
+    #     return 'My Maker is Vasan'
+
+    # if 'vinayak' or 'samyak' in processed:
+    #     return 'You are the team mates of maker'
+
+    # return 'I do not understand what you are asking'
+    response = client.chat.completions.create(
+        model=deployment_name, max_tokens=50, messages=Messages
+    )
+    Messages.append(
+        {'role': 'system', 'content': response.choices[0].message.content})
+    return response.choices[0].message.content
+
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message_type: str = update.message.chat.type
+    text: str = update.message.text
+    print(f'User ({update.message.chat.id}) in {message_type}: "{text}"')
+    if message_type == 'group':
+        if BOT_USERNAME in text:
+            new_text: str = text. replace(BOT_USERNAME, '').strip()
+            response: str = handle_response(new_text)
+        else:
+            return
+    else:
+        response: str = handle_response(text)
+    print('Bot:', response)
+    await update.message.reply_text(response)
+
+
+async def error(update: Update, context: ContextTypes. DEFAULT_TYPE):
+    print(f'Update {update} caused error {context.error}')
+
+if __name__ == '__main__':
+    app = Application.builder().token(TOKEN) .build()
+    # Commands
+    print("Starting ...")
+    app.add_handler(CommandHandler('start', start_command))
+    app.add_handler(CommandHandler('help', help_command))
+    app.add_handler(CommandHandler('custom', custom_command))
+
+    # Messages
+    app.add_handler(MessageHandler(filters.TEXT, handle_message))
+
+    # Errors
+    app. add_error_handler(error)
+
+    # Polls the bot
+    print('Polling...')
+    app.run_polling(poll_interval=3)

@@ -6,7 +6,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 import requests
 from bs4 import BeautifulSoup
 
-TOKEN: Final = '7395100327:AAFstuncapDCsVc5wY3r0KPPaONzmSL_6ss'
+TOKEN: 
 BOT_USERNAME: Final = '@sefpypybot'
 
 # Bing Search API Key

@@ -6,7 +6,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 
 import requests
 
-TOKEN: Final = '7395100327:AAFstuncr0KPPaONzmSL_6ss'
+TOKEN: Final 
 BOT_USERNAME: Final = '@sefpypybot'
 
 # Bing Search API Key

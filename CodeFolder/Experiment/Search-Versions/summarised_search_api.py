@@ -8,7 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 from transformers import pipeline
 
-TOKEN: Final = '7395100327:AAFstuncapDCsVc5wY3r0KPPaONzmSL_6ss'
+TOKEN: 
 BOT_USERNAME: Final = '@sefpypybot'
 
 # Bing Search API Key
